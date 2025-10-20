@@ -3,8 +3,7 @@ const URLS_TO_CACHE = [
   '/',
   'index.html',
   'manifest.json',
-  'icon-192x192.png',
-  'icon-512x512.png'
+  'icons'
   // No es necesario cachear CDNs externos como tailwind, jspdf, etc.
 ];
 
@@ -51,4 +50,5 @@ self.addEventListener('fetch', event => {
         return fetch(event.request);
       })
   );
+
 });
