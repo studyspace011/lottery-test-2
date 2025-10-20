@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery Ledger – By Aavid</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4338ca">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.7.1/dist/jspdf.plugin.autotable.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        /* Basic Reset */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-text-size-adjust: 100%; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { min-height: 100vh; line-height: 1.5; }
+        input, button, textarea, select { font: inherit; }
+        
+        /* THEME VARIABLES */
+        :root {
+            --bg-light: #f3f4f6; --text-light: #1f2937; --card-light: rgba(255, 255, 255, 0.6); --border-light: rgba(209, 213, 219, 0.4);
+            --bg-dark: #0f172a;  --text-dark: #e2e8f0;  --card-dark: rgba(30, 41, 59, 0.6); --border-dark: rgba(71, 85, 105, 0.4);
+            --primary: #4f46e5; --primary-hover: #4338ca;
+            --input-bg-light: #fff; --input-bg-dark: #1e293b;
+        }
+        html.dark { color-scheme: dark; }
+        body { background-color: var(--bg-light); color: var(--text-light); transition: background-color 0.3s ease; }
+        .dark body { background-color: var(--bg-dark); color: var(--text-dark); }
+
+        /* App Layout */
+        #app { max-width: 672px; margin: 0 auto; padding: 1rem; }
+        header { margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        main { padding-bottom: 6rem; }
+        
+        /* Typography */
+        .page-title {
+             font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em;
+             background: linear-gradient(to right, #4f46e5, #7c3aed);
+             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .dark .page-title {
+             background: linear-gradient(to right, #818cf8, #a78bfa);
+             -webkit-background-clip: text;
+        }
+
+        /* Glass Card Component */
+        .glass-card {
+            background-color: var(--card-light); border: 1px solid var(--border-light);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px); transition: all 0.3s ease;
+            padding: 1.25rem; border-radius: 0.75rem;
+        }
+        .dark .glass-card { background-color: var(--card-dark); border-color: var(--border-dark); }
+
+        /* Form Elements */
+        .form-input {
+            width: 100%; font-weight: 600; font-size: 1.125rem;
+            background-color: var(--input-bg-light); border: 1px solid var(--border-light);
+            transition: all 0.2s ease; padding: 0.5rem; border-radius: 0.5rem; margin-top: 0.25rem;
+        }
+        .form-input:focus { box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3); border-color: var(--primary); outline: none; }
+        .dark .form-input { background-color: var(--input-bg-dark) !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+        label { font-weight: 500; font-size: 0.875rem; color: #4b5569; }
+        .dark label { color: #94a3b8; }
+        .grid { display: grid; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .gap-4 { gap: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
+
+        /* Bottom Navigation */
+        nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 672px; margin: 0 auto; padding: 0.5rem; z-index: 20; }
+        .nav-container { display: flex; justify-content: space-around; background-color: rgba(255,255,255,0.7); border: 1px solid rgba(209, 213, 219, 0.5); backdrop-filter: blur(12px); padding: 0.5rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .dark .nav-container { background-color: rgba(30, 41, 59, 0.7); border-color: rgba(71, 85, 105, 0.5); }
+        .nav-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            font-size: 0.75rem; font-weight: 600; color: #4b5569;
+            padding: 8px 4px; width: 100%; border-radius: 0.75rem;
+            transition: all 0.2s ease-in-out; border: none; background: none; cursor: pointer;
+        }
+        .dark .nav-btn { color: #94a3b8; }
+        .nav-btn svg { width: 1.5rem; height: 1.5rem; }
+        .nav-btn:hover { background-color: rgba(79, 70, 229, 0.1); color: var(--primary); }
+        .nav-btn.active { background-color: var(--primary); color: white; }
+
+        /* Buttons & Other */
+        .btn {
+            width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 700;
+            text-align: center; transition: all 0.2s ease; border: none; cursor: pointer;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); font-size: 1.125rem;
+        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .session-morning { background-color: rgba(252, 211, 77, 0.1); }
+        .session-day { background-color: rgba(59, 130, 246, 0.1); }
+        .session-night { background-color: rgba(16, 185, 129, 0.1); }
+        
+        /* Toast Notification */
+        #toast-notification {
+            position: fixed; bottom: 6rem; right: 1.25rem; z-index: 50;
+            padding: 1rem; color: white; font-weight: 600; border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            opacity: 0; transform: translateY(2.5rem);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        /* Animation */
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <header>
+            <h1 class="page-title">Lottery Ledger</h1>
+        </header>
+
+        <main id="content-area"></main>
+
+        <nav>
+            <div class="nav-container">
+                <button onclick="App.navigate('home')" id="nav-home" class="nav-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <span>Entry</span>
+                </button>
+                <button onclick="App.navigate('report')" id="nav-report" class="nav-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>Report</span>
+                </button>
+                <button onclick="App.navigate('dashboard')" id="nav-dashboard" class="nav-btn">
+                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="App.navigate('settings')" id="nav-settings" class="nav-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span>Settings</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <div id="toast-notification"></div>
+
+    <script>
+        // The entire App module script from the previous version goes here.
+        // It does not need to be changed.
+        const App = (() => {
+            // --- STATE MANAGEMENT ---
+            let state = {
+                currentPage: 'home',
+                data: {},
+                settings: {
+                    rate: 4.30,
+                    developerName: 'Your Name',
+                    theme: 'light'
+                },
+                reportDate: new Date().toISOString().split('T')[0],
+                dashboardDate: {
+                    month: new Date().getMonth() + 1,
+                    year: new Date().getFullYear()
+                }
+            };
+            const APP_KEY = 'lotteryLedgerData';
+            const SETTINGS_KEY = 'lotteryLedgerSettings';
+             // --- EMAILJS CONFIG ---
+            const EMAILJS_CONFIG = {
+                publicKey: 'cR_ecVOlooNvaufB0',
+                serviceId: 'service_wc19lto',
+                templateId: 'template_grmabah'
+            };
+
+            // --- CORE & UTILITIES ---
+            const init = () => {
+                loadSettings();
+                loadData();
+                navigate('home');
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('./sw.js')
+                            .then(reg => console.log('ServiceWorker Registered', reg.scope))
+                            .catch(err => console.error('ServiceWorker Registration Failed', err));
+                    });
+                }
+                emailjs.init(EMAILJS_CONFIG.publicKey);
+            };
+
+            const loadSettings = () => {
+                try {
+                    const stored = localStorage.getItem(SETTINGS_KEY);
+                    if (stored) state.settings = { ...state.settings, ...JSON.parse(stored) };
+                    document.documentElement.className = state.settings.theme;
+                } catch (e) { console.error("Failed to load settings", e); }
+            };
+            const saveSettings = () => localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+            const loadData = () => { try { state.data = JSON.parse(localStorage.getItem(APP_KEY)) || {}; } catch (e) { state.data = {}; } };
+            const saveData = () => { try { localStorage.setItem(APP_KEY, JSON.stringify(state.data)); } catch (e) { showToast('Error saving data!', 'red'); } };
+
+            const formatDate = (date) => date.toISOString().split('T')[0];
+            const formatToDDMMYYYY = (isoDate) => {
+                if (!isoDate) return '';
+                const [y, m, d] = isoDate.split('-');
+                return `${d}-${m}-${y}`;
+            };
+            const toLocalDate = (dateString) => new Date(dateString + 'T00:00:00Z');
+
+            const getMondayOfDate = (dateString) => {
+                const date = toLocalDate(dateString);
+                const day = date.getDay() || 7;
+                if (day !== 1) date.setHours(-24 * (day - 1));
+                return formatDate(date);
+            };
+
+            const getWeekRange = (dateString) => {
+                const monday = toLocalDate(getMondayOfDate(dateString));
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                return {
+                    start: formatDate(monday),
+                    end: formatDate(sunday),
+                    display: `${formatToDDMMYYYY(formatDate(monday))} to ${formatToDDMMYYYY(formatDate(sunday))}`
+                };
+            };
+
+            const showToast = (message, type = 'green') => {
+                const toast = document.getElementById('toast-notification');
+                const colors = { red: 'background-color: #ef4444;', orange: 'background-color: #f97316;', green: 'background-color: #22c55e;', blue: 'background-color: #3b82f6;' };
+                toast.style.cssText = colors[type];
+                toast.textContent = message;
+                setTimeout(() => {
+                    toast.style.opacity = '1';
+                    toast.style.transform = 'translateY(0)';
+                }, 10);
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(2.5rem)';
+                }, 3000);
+            };
+
+            // --- NAVIGATION ---
+            const navigate = (page) => {
+                state.currentPage = page;
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`nav-${page}`).classList.add('active');
+                
+                const contentArea = document.getElementById('content-area');
+                contentArea.innerHTML = ''; // Clear content for animation
+                setTimeout(() => {
+                    if (page === 'home') renderDailyEntry();
+                    else if (page === 'report') renderWeeklyReport();
+                    else if (page === 'dashboard') renderDashboard();
+                    else if (page === 'settings') renderSettings();
+                }, 50);
+            };
+
+            // --- RENDER FUNCTIONS ---
+            const renderDailyEntry = (date = formatDate(new Date())) => {
+                const selectedDate = date;
+                const entry = state.data[selectedDate] || { m: {}, d: {}, n: {} };
+                const isSettled = state.data[getMondayOfDate(selectedDate)]?.settled;
+                const sessions = [ { id: 'm', name: 'Morning', color: 'session-morning', data: entry.m }, { id: 'd', name: 'Day', color: 'session-day', data: entry.d }, { id: 'n', name: 'Night', color: 'session-night', data: entry.n } ];
+                document.getElementById('content-area').innerHTML = `
+                    <div class="space-y-6 animate-fade-in">
+                        <div class="glass-card" style="display:flex; justify-content: space-between; align-items: center;">
+                            <label for="date-picker" style="font-weight: 600; font-size: 1.125rem;">Select Date:</label>
+                            <input type="date" id="date-picker" value="${selectedDate}" onchange="App.renderDailyEntry(this.value)" class="form-input" style="width: auto;">
+                        </div>
+                        ${isSettled ? `<p style="padding: 1rem; background-color: rgba(239, 68, 68, 0.1); color: #b91c1c; border-radius: 0.5rem; text-align: center; font-weight: 700;">🚫 This week is settled. Entries are locked.</p>` : ''}
+                        <form id="daily-entry-form" class="space-y-6">
+                            ${sessions.map(s => `
+                                <div class="glass-card ${s.color}">
+                                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">${s.name}</h3>
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label for="${s.id}-in">Tickets In</label>
+                                            <input type="number" id="${s.id}-in" value="${s.data.in || ''}" oninput="App.calculateSessionTotal('${s.id}')" ${isSettled ? 'disabled' : ''} class="form-input">
+                                        </div>
+                                        <div>
+                                            <label for="${s.id}-return">Tickets Return</label>
+                                            <input type="number" id="${s.id}-return" value="${s.data.return || ''}" oninput="App.calculateSessionTotal('${s.id}')" ${isSettled ? 'disabled' : ''} class="form-input">
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--border-light);">
+                                        <p style="font-weight: 500;">Total Sold: <span id="${s.id}-total" style="font-weight: 700; font-size: 1.125rem;">0</span></p>
+                                        <p id="${s.id}-rupees" style="color: #16a34a; font-weight: 700; font-size: 1.25rem;">₹0.00</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            <button type="button" onclick="App.saveDailyEntry('${selectedDate}')" ${isSettled ? 'disabled' : ''} class="btn btn-primary">
+                                ${state.data[selectedDate] ? 'Update Entry' : 'Save Entry'}
+                            </button>
+                        </form>
+                    </div>`;
+                sessions.forEach(s => calculateSessionTotal(s.id));
+            };
+            
+            // --- ALL OTHER JS FUNCTIONS (calculateSessionTotal, saveDailyEntry, etc.) remain the same ---
+            // ... (The rest of your JavaScript logic goes here, unchanged)
+             const calculateSessionTotal = (sessionId) => {
+                const ticketsIn = parseFloat(document.getElementById(`${sessionId}-in`).value) || 0;
+                const ticketsReturn = parseFloat(document.getElementById(`${sessionId}-return`).value) || 0;
+                const totalTickets = ticketsIn - ticketsReturn;
+                document.getElementById(`${sessionId}-total`).textContent = totalTickets;
+                document.getElementById(`${sessionId}-rupees`).textContent = `₹${(totalTickets * state.settings.rate).toFixed(2)}`;
+            };
+            
+            const saveDailyEntry = (dateString) => {
+                if (state.data[getMondayOfDate(dateString)]?.settled) {
+                    showToast("Cannot save, week is settled.", 'red');
+                    return;
+                }
+                let hasData = false;
+                const newEntry = { m: {}, d: {}, n: {} };
+                ['m', 'd', 'n'].forEach(id => {
+                    const ticketsIn = parseFloat(document.getElementById(`${id}-in`).value) || 0;
+                    const ticketsReturn = parseFloat(document.getElementById(`${id}-return`).value) || 0;
+                    if (ticketsIn > 0 || ticketsReturn > 0) hasData = true;
+                    newEntry[id] = { in: ticketsIn, return: ticketsReturn };
+                });
+                
+                if (hasData) {
+                    state.data[dateString] = newEntry;
+                    showToast("Entry saved successfully!", 'green');
+                } else {
+                    delete state.data[dateString];
+                    showToast("Empty entry removed.", 'orange');
+                }
+                saveData();
+                renderDailyEntry(dateString);
+            };
+
+            const updateReportDate = (newDate) => { state.reportDate = newDate; renderWeeklyReport(); };
+            
+            const updateDashboardDate = (newDate) => {
+                const [year, month] = newDate.split('-');
+                state.dashboardDate = { year: parseInt(year), month: parseInt(month) };
+                renderDashboard();
+            };
+
+            const finalizeSettlement = (mondayDate) => {
+                if (state.data[mondayDate]?.settled || !confirm(`Are you sure you want to finalize and lock this week? This action cannot be undone.`)) return;
+                if (!state.data[mondayDate]) state.data[mondayDate] = {};
+                state.data[mondayDate].settled = true;
+                saveData();
+                showToast("Week settlement finalized and locked!", 'blue');
+                renderWeeklyReport();
+            };
+
+            const toggleTheme = () => {
+                state.settings.theme = (state.settings.theme === 'light' ? 'dark' : 'light');
+                document.documentElement.className = state.settings.theme;
+                saveSettings();
+                navigate(state.currentPage);
+            };
+
+            const updateSetting = (key, value) => {
+                state.settings[key] = value;
+                saveSettings();
+                showToast('Setting updated!', 'orange');
+            };
+
+            const handleFeedbackSubmit = (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const message = form.querySelector('#feedback-message').value;
+                const email = form.querySelector('#feedback-email').value || 'Not provided';
+                const button = form.querySelector('button');
+                button.disabled = true;
+                button.textContent = 'Sending...';
+
+                const templateParams = { from_email: email, message: message };
+
+                emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, templateParams)
+                    .then(() => {
+                        showToast('Feedback sent successfully. Thank you!', 'green');
+                        form.reset();
+                    }, (error) => {
+                        showToast('Failed to send feedback. Please try again.', 'red');
+                        console.error('EmailJS Error:', error);
+                    })
+                    .finally(() => {
+                        button.disabled = false;
+                        button.textContent = 'Send Feedback';
+                    });
+            };
+
+            const generateChart = () => {
+                const { month, year } = state.dashboardDate;
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+                const chartData = new Array(daysInMonth).fill(0);
+                
+                for (const dateStr in state.data) {
+                    const [dYear, dMonth, dDay] = dateStr.split('-').map(Number);
+                    if (dYear === year && dMonth === month) {
+                        const entry = state.data[dateStr];
+                        const mTotal = (entry.m?.in || 0) - (entry.m?.return || 0);
+                        const dTotal = (entry.d?.in || 0) - (entry.d?.return || 0);
+                        const nTotal = (entry.n?.in || 0) - (entry.n?.return || 0);
+                        chartData[dDay - 1] = (mTotal + dTotal + nTotal) * state.settings.rate;
+                    }
+                }
+
+                const ctx = document.getElementById('monthlyChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: `Total Sales (₹) for ${new Date(year, month-1).toLocaleString('default', { month: 'long' })} ${year}`,
+                            data: chartData,
+                            backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                            borderColor: 'rgba(79, 70, 229, 1)',
+                            borderWidth: 1,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            };
+            const exportDataCSV = () => { /* ... implementation from your code ... */ };
+            const importDataCSV = (event) => { /* ... implementation from your code ... */ };
+            const clearOldRecords = () => { /* ... implementation from your code ... */ };
+
+             // --- PUBLIC INTERFACE ---
+            return {
+                init, navigate, renderDailyEntry, calculateSessionTotal, saveDailyEntry,
+                updateReportDate, finalizeSettlement,
+                updateDashboardDate,
+                updateSetting, toggleTheme,
+                exportDataCSV, importDataCSV, clearOldRecords
+            };
+
+        })();
+        window.onload = App.init;
+    </script>
+</body>
+</html>
